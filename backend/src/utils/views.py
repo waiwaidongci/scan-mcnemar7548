@@ -27,3 +27,21 @@ def schedule(item):
 def delivery(item):
     return {'id': item.id, 'run_id': item.run_id, 'recipient': item.recipient,
             'state': item.state, 'detail': item.detail, 'created_at': iso(item.created_at)}
+
+
+def finance_batch(item):
+    return {'id': item.id, 'batch_code': item.batch_code, 'seq': item.seq, 'state': item.state,
+            'expected_slots': item.expected_slots, 'error': item.error,
+            'author': item.author, 'created_at': iso(item.created_at),
+            'activated_at': iso(item.activated_at), 'superseded_at': iso(item.superseded_at)}
+
+
+def finance_receipt(item):
+    return {'id': item.id, 'batch_id': item.batch_id, 'run_id': item.run_id,
+            'report_name': item.report_name, 'delivered_version': item.delivered_version,
+            'state': item.state, 'expected_checksum': item.expected_checksum,
+            'actual_checksum': item.actual_checksum,
+            'checksum_ok': item.expected_checksum == item.actual_checksum,
+            'file_size': item.file_size, 'attempts': item.attempts, 'note': item.note,
+            'created_at': iso(item.created_at), 'updated_at': iso(item.updated_at),
+            'confirmed_at': iso(item.confirmed_at)}

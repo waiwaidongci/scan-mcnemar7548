@@ -7,4 +7,6 @@
 - `runs` 记录参数、数据批次、运行租约、分析结果、导出文件及复核决定。
 - `schedules` 保存定时计划和下一到期时间。
 - `deliveries` 保存站内分发回执，每次运行最多一个回执。
-- `audit_events` 记录登录、数据入库、运行、复核和报表分发动作。
+- `finance_batches` 财务整批换版入库单，`(batch_code, seq)` 唯一，seq 单调递增，active 任一时刻至多一个。
+- `finance_receipts` 财务按交付版本与完整文件指纹验收的回执；对非 `stale` 行建部分唯一索引 `(batch_id, run_id)`，同槽位幂等重试不重复入库，乱序/迟到的 stale 留痕行不受唯一约束限制。
+- `audit_events` 记录登录、数据入库、运行、复核、报表分发和财务换版动作。

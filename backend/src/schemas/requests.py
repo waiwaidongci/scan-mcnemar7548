@@ -28,3 +28,12 @@ class ScheduleRequest(RunRequest):
     recipient: str = Field(min_length=1, max_length=100)
     first_at: datetime
     repeat_daily: bool = False
+
+class FinanceBatchRequest(Request):
+    batch_code: str = Field(min_length=1, max_length=120)
+    expected_slots: int = Field(gt=0, le=50)
+
+class FinanceReceiveRequest(Request):
+    run_id: int = Field(gt=0)
+    tamper: bool = False
+    delivered_version: str = Field(default='', max_length=40)

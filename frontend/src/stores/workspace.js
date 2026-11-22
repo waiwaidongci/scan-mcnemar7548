@@ -18,5 +18,13 @@ export const workspace = {
   deliveries: () => call('/deliveries'),
   schedule: data => call('/schedules', data),
   disable: id => call(`/schedules/${id}/disable`, {}),
+  financeBatches: () => call('/finance/batches'),
+  financeBatch: id => call(`/finance/batches/${id}`),
+  financeOpen: data => call('/finance/batches', data),
+  financeReceive: (id, data) => call(`/finance/batches/${id}/receive`, data),
+  financeActivate: id => call(`/finance/batches/${id}/activate`, {}),
+  financeReopen: id => call(`/finance/batches/${id}/reopen`, {}),
+  financeReconcile: code => call(`/finance/reconciliation?batch_code=${encodeURIComponent(code)}`),
+  financeDemo: () => call('/finance/demo/run', {}),
   download: (path, filename) => saveFile(path, session.token, filename),
 };

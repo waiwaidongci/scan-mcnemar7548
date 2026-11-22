@@ -18,6 +18,7 @@
 | 验收结果 | 查看业务指标、证据表和解释，通过来源链接回查数据。 |
 | 差异复核 | 查看待处理或已完成记录。复核主管可提交差异复核及依据。 |
 | 报告交付 | 按批查找结果，核对复核状态并下载相应的 CSV。 |
+| 财务接收 | 模拟财务系统按批次整批换版，按交付版本与完整文件指纹验收入库并对账。 |
 
 ## 启动
 
@@ -45,6 +46,20 @@ docker compose exec -T backend python -m scripts.seed_demo
 5. 在差异复核优先追查 CS-20261121-001 至 003，核对 B 未通过的字段和原始影像。
 6. 将净增门槛提高到 20 个百分点重跑，确认显著性门槛仍达标，净增门槛改为未达标。
 7. 在报告交付导出采用原门槛的运行结果，把 CSV 和复核记录交给财务变更负责人。
+8. 在财务接收页点「一键模拟财务接收全流程」，或手工开批次、接收报告并整批生效，对照对账结果。
+
+## 财务接收口径
+
+财务系统收到验收报告后，按批次整批换版，规则与页面行为一致：
+
+- **按批次整批换版**：`finance_batches` 以 `(batch_code, seq)` 唯一，seq 单调递增；active 批次任一时刻至多一个，激活在单个事务内原子完成，旧 active 整批降为 superseded。
+- **版本 + 完整指纹验收**：交付报文带交付版本与 SHA-256；财务端不信任随报指纹，对实收字节重新计算后再核对，不符的回执单列为 `mismatch`，不得入库。
+- **幂等重试**：对非 stale 行建部分唯一索引 `(batch_id, run_id)`。已入库却没回执时沿用原文件重试，只累加 `attempts`，不产生第二条入库记录。
+- **半成品保护**：未补齐或存在指纹不符时激活被拒，批次置为 `failed` 挂起且旧版继续生效；重开批次、补齐正确文件后再整批生效。
+- **迟到与乱序防护**：已 superseded 批次的迟到投递、已确认槽位的旧/异版本回执一律记为 `stale` 留痕，不覆盖、不倒退已确认版本。
+- **交付对账**：按实收版本和指纹逐槽核对，单列指纹不符与乱序回执，`active_seq` 标明当前生效版本。
+
+一键演示依次演：v1 整批生效 → 无回执幂等重试 → v2 半成品（含指纹不符）被拦截 → 重开补齐后 v2 生效、v1 归档 → 迟到旧报告记 stale → 乱序旧版本记 stale → v3 写一半失败保留 v2。
 
 ## 计算口径
 
@@ -61,7 +76,9 @@ docker compose exec -T backend python -m scripts.seed_demo
 | 前端 | Nginx 与原生 HTML、CSS、JavaScript。`frontend/src/pages` 放页面，`components/common` 放共用表格、图表及表单。 |
 | API | Python 3.11、FastAPI、SQLAlchemy。`backend/src/domain` 放本项目字段、业务计算和演示数据，`routes` 放接口，`models` 放表模型。 |
 | 后台 | 独立 Python worker，通过 Redis 唤醒，从数据库租约领取计算，CSV 写入共享卷。 |
+| 财务接收 | `src/models/finance.py` 换版批次与回执表，`src/services/finance.py` 幂等接收、指纹核验、整批换版与对账，路由见 `src/routes/finance.py`。 |
 | 数据 | PostgreSQL 16 存储批次、运行与审计。`backend/scripts/seed_demo.py` 可安全重复执行。 |
+| 测试 | `backend/tests` 用 SQLite 内存库与 TestClient 覆盖财务规则与 HTTP 流程：`python -m pytest`。 |
 
 改动前端后执行 `docker compose up -d --build frontend`。改动接口或算法后执行 `docker compose up -d --build backend worker`，再刷新浏览器。如需保留数据，停止时执行 `docker compose down`。使用 `docker compose down -v --remove-orphans` 会清除该项目的数据库、Redis 和报表卷。
 
